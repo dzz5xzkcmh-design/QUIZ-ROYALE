@@ -1,337 +1,368 @@
-// WWM Battle Royale - Hauptspiellogik mit Fixes
+// WWM Battle Royale - Game Logic (FIXED VERSION)
 
-const webRoomsWebSocketServerAddr = 'https://nosch.uber.space/web-rooms/';
 
-// Game State
-let gameState = {
-    phase: 'waiting',
-    currentQuestionIndex: 0,
-    selectedAnswer: null,
-    sortedItems: [],
-    elapsedTime: 0, // Changed from timeLeft to elapsedTime
+const gameState = {
+    roomCode: '',
+    playerName: '',
+    playerId: null,
     players: [],
-    myPlayerId: null,
-    roomCode: null,
-    playerName: null,
-    answerSubmitted: false,
+    currentQuestion: null,
+    currentQuestionIndex: 0,
+    playerAnswers: {},
+    timer: 0,
     timerInterval: null,
-    isHost: false,
-    answerTimes: {},
-    waitingForPlayers: false
+    eliminated: false,
+    gameOver: false,
+    myAnswerTime: null,
+    gameStarted: false,
+    allReady: false
 };
+
 
 let socket = null;
 
+
+// Initialize game
 function initGame() {
     console.log('🎮 Initializing game...');
-    
+
+    // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     gameState.roomCode = urlParams.get('room');
-    gameState.playerName = urlParams.get('player') || 'Player';
-    gameState.myPlayerId = parseInt(urlParams.get('playerId')) || Date.now();
-    gameState.isHost = urlParams.get('isHost') === 'true';
+    gameState.playerName = urlParams.get('player');
+    gameState.playerId = parseInt(urlParams.get('playerId'));
+
+    // Get players from URL (passed from lobby)
+    const playersParam = urlParams.get('players');
+    if (playersParam) {
+        try {
+            gameState.players = JSON.parse(decodeURIComponent(playersParam));
+            console.log('📋 Loaded players from lobby:', gameState.players);
+        } catch (e) {
+            console.error('Error parsing players:', e);
+            gameState.players = [{
+                id: gameState.playerId,
+                name: gameState.playerName,
+                eliminated: false
+            }];
+        }
+    } else {
+        gameState.players = [{
+            id: gameState.playerId,
+            name: gameState.playerName,
+            eliminated: false
+        }];
+    }
 
     console.log('Room:', gameState.roomCode);
     console.log('Player:', gameState.playerName);
-    console.log('Player ID:', gameState.myPlayerId);
-    console.log('Is Host:', gameState.isHost ? '👑 YES' : '👤 NO');
+    console.log('Player ID:', gameState.playerId);
+    console.log('Total players:', gameState.players.length);
 
-    if (!gameState.roomCode) {
-        alert('Kein Raum-Code gefunden! Zurück zur Lobby...');
-        window.location.href = 'index.html';
-        return;
-    }
+    // Update UI
+    updatePlayerNameDisplay();
+    updatePlayersGrid();
 
-    gameState.players.push({
-        id: gameState.myPlayerId,
-        name: gameState.playerName,
-        active: true,
-        answerTime: null
-    });
-
-    initWebSocket();
-    showWaitingScreen();
+    // Connect WebSocket
+    connectWebSocket();
 }
 
-function initWebSocket() {
-    socket = new WebSocket(webRoomsWebSocketServerAddr);
+
+// Update player name in header
+function updatePlayerNameDisplay() {
+    const elem = document.getElementById('player-name-display');
+    if (elem) {
+        elem.textContent = gameState.playerName;
+    }
+}
+
+
+// Update 2D players grid
+function updatePlayersGrid() {
+    const container = document.getElementById('players-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    gameState.players.forEach(player => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.id = `player-${player.id}`;
+
+        const isYou = player.id === gameState.playerId;
+        if (isYou) {
+            card.classList.add('player-you');
+        }
+
+        if (player.eliminated) {
+            card.classList.add('player-eliminated');
+        }
+
+        card.innerHTML = `
+            <div class="player-card-inner">
+                <div class="player-name">${player.name}</div>
+                <div class="player-status">${player.eliminated ? '💀 Eliminiert' : '✓ Aktiv'}</div>
+                ${isYou ? '<div class="player-badge">DU</div>' : ''}
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+
+// Connect to WebSocket
+function connectWebSocket() {
+    socket = new WebSocket('wss://nosch.uber.space/web-rooms/');
 
     socket.addEventListener('open', (event) => {
-        console.log('✅ WebSocket connected');
-        sendRequest('*enter-room*', `wwm-${gameState.roomCode}`);
-        sendRequest('*subscribe-client-count*');
-        
-        broadcastMessage({
-            type: 'game-player-ready',
-            id: gameState.myPlayerId,
-            name: gameState.playerName
-        });
-        
-        // HOST starts game after 3 seconds
-        if (gameState.isHost) {
-            console.log('👑 I am HOST - Starting game in 3 seconds...');
+        console.log('WebSocket connected');
+        socket.send(JSON.stringify(['*enter-room*', gameState.roomCode]));
+
+        // Send player-ready message
+        setTimeout(() => {
+            sendRequest('*broadcast-message*', JSON.stringify({
+                type: 'game-player-ready',
+                id: gameState.playerId,
+                name: gameState.playerName
+            }));
+
+            // Check if we can start after a delay
             setTimeout(() => {
-                console.log('👑 HOST: Broadcasting first question');
-                startQuestion(0);
-            }, 3000);
-        } else {
-            console.log('👤 I am PLAYER - Waiting for host...');
-        }
-        
-        setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) socket.send('');
-        }, 30000);
+                checkIfAllReady();
+            }, 500);
+        }, 100);
     });
 
     socket.addEventListener('message', (event) => {
-        if (event.data.length > 0) {
-            try {
-                const incoming = JSON.parse(event.data);
-                handleMessage(incoming);
-            } catch (e) {
-                console.warn('Failed to parse:', e);
-            }
-        }
+        handleMessage(event.data);
     });
 
-    socket.addEventListener('close', () => console.log('❌ WebSocket disconnected'));
+    socket.addEventListener('close', () => {
+        console.log('WebSocket disconnected');
+    });
 }
 
-function handleMessage(message) {
-    if (!Array.isArray(message)) return;
-    
-    const [selector] = message;
-    
-    if (selector === '*client-id*' || selector === '*client-count*') return;
 
-    if (typeof selector === 'string' && selector.startsWith('{')) {
-        try {
-            const data = JSON.parse(selector);
-            
-            switch(data.type) {
-                case 'game-player-ready':
-                    if (data.id !== gameState.myPlayerId) {
-                        console.log('➕ Player joined:', data.name);
-                        addPlayer(data);
-                    }
-                    break;
-                    
-                case 'start-question':
-                    console.log('📝 Received question:', data.questionIndex);
-                    if (!gameState.isHost) {
-                        receiveQuestion(data.questionIndex);
-                    }
-                    break;
-                    
-                case 'player-answered':
-                    console.log('✅ Player answered:', data.playerName, 'Time:', data.time.toFixed(2) + 's');
-                    gameState.answerTimes[data.playerId] = {
-                        name: data.playerName,
-                        time: data.time
-                    };
-                    
-                    if (gameState.isHost) {
-                        checkIfAllAnswered();
-                    }
-                    break;
-                    
-                case 'player-eliminated':
-                    console.log('💀 Player eliminated:', data.playerName, '(Time:', data.time.toFixed(2) + 's)');
-                    eliminatePlayer(data.playerId, data.playerName);
-                    break;
-                    
-                case 'game-over':
-                    console.log('🏆 Game over! Winner:', data.winnerName);
-                    if (data.winnerId === gameState.myPlayerId) {
-                        showWinnerScreen();
-                    }
-                    break;
-            }
-        } catch (e) {
-            console.warn('Parse error:', e);
-        }
-    }
-}
-
-function broadcastMessage(data) {
-    sendRequest('*broadcast-message*', JSON.stringify(data));
-}
-
-function sendRequest(...message) {
+// Send WebSocket request
+function sendRequest(selector, ...args) {
     if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message));
+        socket.send(JSON.stringify([selector, ...args]));
     }
 }
 
-function addPlayer(playerData) {
-    if (!gameState.players.find(p => p.id === playerData.id)) {
+
+// Handle incoming messages
+function handleMessage(data) {
+    try {
+        const parsed = JSON.parse(data);
+        const [selector, ...args] = parsed;
+
+        if (Array.isArray(args) && args.length > 0 && typeof args[0] === 'string') {
+            try {
+                const broadcastData = JSON.parse(args[0]);
+                handleGameMessage(broadcastData);
+            } catch (e) {
+                // Not a JSON string
+            }
+        }
+
+    } catch (e) {
+        console.error('Error handling message:', e);
+    }
+}
+
+
+// Handle game-specific messages
+function handleGameMessage(data) {
+    console.log('📨 Received game message:', data.type);
+
+    switch (data.type) {
+        case 'game-player-ready':
+            handlePlayerReady(data);
+            break;
+        case 'start-game':
+            if (!gameState.allReady) {
+                handleGameStart();
+            }
+            break;
+        case 'player-answer':
+            handlePlayerAnswer(data);
+            break;
+        case 'player-eliminated':
+            handlePlayerEliminated(data);
+            break;
+    }
+}
+
+
+// Handle player ready
+function handlePlayerReady(data) {
+    const existing = gameState.players.find(p => p.id === data.id);
+    if (!existing && data.id !== gameState.playerId) {
+        console.log('➕ Player joined:', data.name);
         gameState.players.push({
-            id: playerData.id,
-            name: playerData.name,
-            active: true,
-            answerTime: null
+            id: data.id,
+            name: data.name,
+            eliminated: false
         });
-        updatePlayersDisplay();
-        updateAFrameScene();
+        updatePlayersGrid();
+    }
+
+    checkIfAllReady();
+}
+
+
+// ✅ FIX 1: Check if all players ready - improved
+function checkIfAllReady() {
+    const readyCount = gameState.players.length;
+
+    document.getElementById('status-text').textContent = 
+        `Warte auf Spieler... ${readyCount}/${readyCount} Spieler sind bereit`;
+
+    const activePlayers = gameState.players.filter(p => !p.eliminated);
+    document.getElementById('players-left').textContent = activePlayers.length;
+
+    // Start with at least 1 player (for testing), only once
+    if (readyCount >= 1 && !gameState.allReady) {
+        gameState.allReady = true;
+
+        console.log('✅ ALL PLAYERS READY! Broadcasting start...');
+
+        sendRequest('*broadcast-message*', JSON.stringify({
+            type: 'start-game'
+        }));
+
+        setTimeout(() => {
+            handleGameStart();
+        }, 2000);
     }
 }
 
-function startQuestion(questionIndex) {
-    if (!gameState.isHost) return;
-    
-    console.log('👑 HOST: Starting question', questionIndex);
-    
-    const activePlayers = gameState.players.filter(p => p.active);
-    
-    if (activePlayers.length <= 1) {
-        const winner = activePlayers[0];
-        console.log('🏆 WINNER:', winner?.name || 'Unknown');
-        
-        broadcastMessage({
-            type: 'game-over',
-            winnerId: winner?.id,
-            winnerName: winner?.name
-        });
-        
-        if (winner && winner.id === gameState.myPlayerId) {
-            showWinnerScreen();
-        }
+
+// ✅ FIX 2: Handle game start - only once
+function handleGameStart() {
+    if (gameState.gameStarted) {
+        console.log('⚠️ Game already started, ignoring duplicate start message');
         return;
     }
-    
-    if (questionIndex >= QUESTIONS.length) {
-        const winner = activePlayers[0];
-        broadcastMessage({
-            type: 'game-over',
-            winnerId: winner?.id,
-            winnerName: winner?.name
-        });
-        
-        if (winner && winner.id === gameState.myPlayerId) {
-            showWinnerScreen();
-        }
-        return;
-    }
-    
-    gameState.answerTimes = {};
-    gameState.waitingForPlayers = true;
-    
-    broadcastMessage({
-        type: 'start-question',
-        questionIndex: questionIndex
+
+    gameState.gameStarted = true;
+    console.log('🎮 STARTING GAME!');
+
+    showCountdown(3, () => {
+        startQuestion(0);
     });
-    
-    receiveQuestion(questionIndex);
 }
 
-function receiveQuestion(questionIndex) {
-    console.log('📝 Showing question', questionIndex);
-    
-    gameState.currentQuestionIndex = questionIndex;
-    gameState.phase = 'question';
-    gameState.selectedAnswer = null;
-    gameState.sortedItems = [];
-    gameState.elapsedTime = 0; // Reset elapsed time
-    gameState.answerSubmitted = false;
 
-    const question = getQuestion(questionIndex);
-    
+// Start a question
+function startQuestion(index) {
+    console.log('📝 Starting question', index);
+
+    if (typeof QUESTIONS === 'undefined' || !QUESTIONS || QUESTIONS.length === 0) {
+        console.error('❌ FEHLER: questions.js nicht geladen!');
+        document.getElementById('status-text').innerHTML = 
+            '❌ FEHLER: Fragen konnten nicht geladen werden!';
+        return;
+    }
+
+    if (index >= QUESTIONS.length) {
+        console.log('🏁 No more questions - showing winner');
+        showWinner();
+        return;
+    }
+
+    gameState.currentQuestionIndex = index;
+    gameState.currentQuestion = QUESTIONS[index];
+    gameState.myAnswerTime = null;
+
+    // ✅ FIX 3: Properly hide/show screens using classList
     document.getElementById('waiting-screen').classList.add('hidden');
     document.getElementById('question-screen').classList.remove('hidden');
-    document.getElementById('eliminated-screen').classList.add('hidden');
-    document.getElementById('winner-screen').classList.add('hidden');
 
-    document.getElementById('question-number').textContent = questionIndex + 1;
-    document.getElementById('players-left').textContent = gameState.players.filter(p => p.active).length;
-    document.getElementById('question-text').textContent = question.question;
-    document.getElementById('message-container').innerHTML = '';
+    const activePlayers = gameState.players.filter(p => !p.eliminated);
+    document.getElementById('players-left').textContent = activePlayers.length;
+
+    document.getElementById('question-number').textContent = `Frage ${index + 1}`;
+    document.getElementById('question-text').textContent = gameState.currentQuestion.question;
+    document.getElementById('feedback').style.display = 'none';
     document.getElementById('submit-btn').disabled = false;
 
-    // Update timer display
-    const timerElement = document.getElementById('timer');
-    timerElement.textContent = '0';
-    timerElement.classList.remove('warning');
-
-    if (question.type === 'multiple-choice') {
-        displayMultipleChoice(question);
+    if (gameState.currentQuestion.type === 'sort') {
+        renderSortQuestion();
     } else {
-        displaySortingQuestion(question);
+        renderMultipleChoice();
     }
 
     startTimer();
 }
 
-function displayMultipleChoice(question) {
-    const answersContainer = document.getElementById('answers-container');
-    const sortingContainer = document.getElementById('sorting-container');
-    
-    answersContainer.classList.remove('hidden');
-    sortingContainer.classList.add('hidden');
-    answersContainer.innerHTML = '';
 
-    question.answers.forEach((answer, index) => {
+// Render multiple choice
+function renderMultipleChoice() {
+    const container = document.getElementById('answers-container');
+    container.innerHTML = '';
+    container.className = 'answers-grid';
+
+    gameState.currentQuestion.answers.forEach((answer, index) => {
         const button = document.createElement('button');
-        button.className = 'answer-btn';
-        button.innerHTML = `
-            <span class="answer-letter">${String.fromCharCode(65 + index)}:</span>
-            ${answer}
-        `;
+        button.className = 'answer-option';
+        button.textContent = `${String.fromCharCode(65 + index)}) ${answer}`;
         button.onclick = () => selectAnswer(index);
-        answersContainer.appendChild(button);
+        container.appendChild(button);
     });
 }
 
-function displaySortingQuestion(question) {
-    const answersContainer = document.getElementById('answers-container');
-    const sortingContainer = document.getElementById('sorting-container');
-    
-    answersContainer.classList.add('hidden');
-    sortingContainer.classList.remove('hidden');
-    sortingContainer.innerHTML = '';
 
-    gameState.sortedItems = [...question.items];
+// Render sort question
+function renderSortQuestion() {
+    const container = document.getElementById('answers-container');
+    container.innerHTML = '<div class="sort-instructions">📌 Ziehe die Elemente in die richtige Reihenfolge:</div>';
+    container.className = 'sort-container';
 
-    gameState.sortedItems.forEach((item, index) => {
+    const sortList = document.createElement('div');
+    sortList.id = 'sort-list';
+    sortList.className = 'sort-list';
+
+    const shuffled = [...gameState.currentQuestion.answers]
+        .map((item, index) => ({ item, index, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(obj => obj.item);
+
+    shuffled.forEach(item => {
         const div = document.createElement('div');
-        div.className = 'sortable-item';
+        div.className = 'sort-item';
         div.draggable = true;
-        div.dataset.index = index;
-        div.innerHTML = `
-            <div class="sort-number">${index + 1}</div>
-            <div class="sort-text">${item}</div>
-        `;
+        div.textContent = item;
 
         div.addEventListener('dragstart', handleDragStart);
         div.addEventListener('dragover', handleDragOver);
         div.addEventListener('drop', handleDrop);
         div.addEventListener('dragend', handleDragEnd);
 
-        sortingContainer.appendChild(div);
+        sortList.appendChild(div);
     });
 
-    const hint = document.createElement('div');
-    hint.className = 'sorting-hint';
-    hint.textContent = 'Ziehe die Antworten in die richtige Reihenfolge';
-    sortingContainer.appendChild(hint);
+    container.appendChild(sortList);
 }
 
+
+// Drag and drop handlers
 let draggedElement = null;
 
 function handleDragStart(e) {
-    draggedElement = e.target.closest('.sortable-item');
-    draggedElement.classList.add('dragging');
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
 }
 
 function handleDragOver(e) {
     e.preventDefault();
-    const container = e.currentTarget.parentElement;
-    const afterElement = getDragAfterElement(container, e.clientY);
-    const dragging = document.querySelector('.dragging');
-    
+    const afterElement = getDragAfterElement(e.target.parentElement, e.clientY);
     if (afterElement == null) {
-        container.appendChild(dragging);
+        e.target.parentElement.appendChild(draggedElement);
     } else {
-        container.insertBefore(dragging, afterElement);
+        e.target.parentElement.insertBefore(draggedElement, afterElement);
     }
 }
 
@@ -341,23 +372,10 @@ function handleDrop(e) {
 
 function handleDragEnd(e) {
     e.target.classList.remove('dragging');
-    
-    const sortingContainer = document.getElementById('sorting-container');
-    const items = Array.from(sortingContainer.querySelectorAll('.sortable-item'));
-    const question = getQuestion(gameState.currentQuestionIndex);
-    
-    gameState.sortedItems = items.map(item => {
-        const text = item.querySelector('.sort-text').textContent;
-        return question.items.find(i => i === text);
-    });
-
-    items.forEach((item, index) => {
-        item.querySelector('.sort-number').textContent = index + 1;
-    });
 }
 
 function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
+    const draggableElements = [...container.querySelectorAll('.sort-item:not(.dragging)')];
 
     return draggableElements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
@@ -371,141 +389,115 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-function selectAnswer(index) {
-    if (gameState.answerSubmitted) return;
-    gameState.selectedAnswer = index;
 
-    const buttons = document.querySelectorAll('.answer-btn');
-    buttons.forEach((btn, i) => {
-        btn.classList.toggle('selected', i === index);
+// Select answer
+let selectedAnswerIndex = null;
+
+function selectAnswer(index) {
+    document.querySelectorAll('.answer-option').forEach(btn => {
+        btn.classList.remove('selected');
     });
+
+    const buttons = document.querySelectorAll('.answer-option');
+    if (buttons[index]) {
+        buttons[index].classList.add('selected');
+        selectedAnswerIndex = index;
+    }
 }
 
+
+// ✅ FIX 4: Submit answer - store own answer immediately
 function submitAnswer() {
-    if (gameState.answerSubmitted) return;
+    let userAnswer;
 
-    const question = getQuestion(gameState.currentQuestionIndex);
-    const answerTime = gameState.elapsedTime; // Use elapsed time instead
-    let isCorrect = false;
-
-    if (question.type === 'multiple-choice') {
-        if (gameState.selectedAnswer === null) return;
-        isCorrect = gameState.selectedAnswer === question.correct;
+    if (gameState.currentQuestion.type === 'sort') {
+        const sortItems = document.querySelectorAll('.sort-item');
+        userAnswer = Array.from(sortItems).map(item => item.textContent);
     } else {
-        const sortedIndices = gameState.sortedItems.map(item => question.items.indexOf(item));
-        isCorrect = JSON.stringify(sortedIndices) === JSON.stringify(question.correct);
+        if (selectedAnswerIndex === null) {
+            showFeedback('Bitte wähle eine Antwort!', false);
+            return;
+        }
+        userAnswer = selectedAnswerIndex;
     }
+
+    const isCorrect = checkAnswer(userAnswer);
 
     if (isCorrect) {
-        gameState.answerSubmitted = true;
         stopTimer();
-        showMessage('success', `✓ Richtig in ${answerTime.toFixed(2)}s! Warte auf andere Spieler...`);
-        document.getElementById('submit-btn').disabled = true;
+        gameState.myAnswerTime = gameState.timer;
 
-        broadcastMessage({
-            type: 'player-answered',
-            playerId: gameState.myPlayerId,
-            playerName: gameState.playerName,
-            time: answerTime
-        });
-
-        gameState.answerTimes[gameState.myPlayerId] = {
-            name: gameState.playerName,
-            time: answerTime
+        // ✅ Store MY OWN answer IMMEDIATELY
+        gameState.playerAnswers[gameState.playerId] = {
+            time: gameState.timer,
+            name: gameState.playerName
         };
 
-        if (gameState.isHost) {
-            checkIfAllAnswered();
-        }
+        console.log('✅ I answered! Time:', gameState.timer.toFixed(1) + 's');
+        console.log('📊 My playerAnswers:', gameState.playerAnswers);
+
+        showFeedback(`🎉 Du bist eine Runde weiter! (Zeit: ${gameState.timer.toFixed(1)}s)`, true);
+
+        // Broadcast answer
+        sendRequest('*broadcast-message*', JSON.stringify({
+            type: 'player-answer',
+            playerId: gameState.playerId,
+            playerName: gameState.playerName,
+            time: gameState.timer,
+            questionIndex: gameState.currentQuestionIndex
+        }));
+
+        document.getElementById('submit-btn').disabled = true;
+
+        // ✅ Check if all answered (including myself!)
+        checkIfAllAnswered();
+
     } else {
-        showMessage('error', '✗ Falsche Antwort! Versuche es erneut...');
-        
-        if (question.type === 'multiple-choice') {
-            gameState.selectedAnswer = null;
-            document.querySelectorAll('.answer-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-        }
+        showFeedback('✗ Falsche Antwort! Versuche es erneut...', false);
     }
 }
 
-function checkIfAllAnswered() {
-    if (!gameState.isHost) return;
-    
-    const activePlayers = gameState.players.filter(p => p.active);
-    const answeredCount = Object.keys(gameState.answerTimes).length;
-    
-    console.log(`📊 Answered: ${answeredCount}/${activePlayers.length}`);
-    
-    if (answeredCount >= activePlayers.length) {
-        console.log('✅ All players answered!');
-        processElimination();
-    }
-}
 
-function processElimination() {
-    if (!gameState.isHost) return;
-    
-    console.log('⚔️ Processing elimination...');
-    console.log('Answer times:', gameState.answerTimes);
-    
-    let slowestPlayer = null;
-    let slowestTime = -1;
-    
-    for (const playerId in gameState.answerTimes) {
-        const data = gameState.answerTimes[playerId];
-        if (data.time > slowestTime) {
-            slowestTime = data.time;
-            slowestPlayer = { id: parseInt(playerId), ...data };
-        }
-    }
-    
-    console.log('💀 Slowest player:', slowestPlayer?.name, 'Time:', slowestTime.toFixed(2) + 's');
-    
-    if (slowestPlayer) {
-        broadcastMessage({
-            type: 'player-eliminated',
-            playerId: slowestPlayer.id,
-            playerName: slowestPlayer.name,
-            time: slowestPlayer.time
-        });
-        
-        eliminatePlayer(slowestPlayer.id, slowestPlayer.name);
-        
-        setTimeout(() => {
-            const nextIndex = gameState.currentQuestionIndex + 1;
-            console.log('👑 HOST: Moving to question', nextIndex);
-            startQuestion(nextIndex);
-        }, 5000);
+// Check if answer is correct
+function checkAnswer(userAnswer) {
+    if (gameState.currentQuestion.type === 'sort') {
+        return JSON.stringify(userAnswer) === JSON.stringify(gameState.currentQuestion.correct);
     } else {
-        console.error('❌ No slowest player found! This should not happen.');
+        return userAnswer === gameState.currentQuestion.correct;
     }
 }
 
-function eliminatePlayer(playerId, playerName) {
-    const player = gameState.players.find(p => p.id === playerId);
-    if (player) {
-        player.active = false;
-        console.log('💀 Eliminated:', playerName);
-    }
-    
-    if (playerId === gameState.myPlayerId) {
-        setTimeout(() => {
-            showEliminatedScreen();
-        }, 2000);
-    } else {
-        showWaitingScreen(playerName);
-    }
+
+// Show feedback
+function showFeedback(message, isCorrect) {
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = message;
+    feedback.className = isCorrect ? 'correct' : 'incorrect';
+    feedback.style.display = 'block';
 }
 
+
+// Timer
 function startTimer() {
-    const timerElement = document.getElementById('timer');
-    
+    gameState.timer = 0;
+
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+
     gameState.timerInterval = setInterval(() => {
-        gameState.elapsedTime += 0.1; // Count up in 0.1s increments
-        timerElement.textContent = gameState.elapsedTime.toFixed(1);
+        gameState.timer += 0.1;
+        updateTimerDisplay();
+
+        // ✅ FIX 5: Auto-eliminate after 45 seconds
+        if (gameState.timer >= 45 && gameState.myAnswerTime === null) {
+            console.log('⏱️ TIME OUT! Auto-eliminating...');
+            stopTimer();
+            autoEliminateMe();
+        }
     }, 100);
 }
+
 
 function stopTimer() {
     if (gameState.timerInterval) {
@@ -514,98 +506,272 @@ function stopTimer() {
     }
 }
 
-function showMessage(type, text) {
-    const container = document.getElementById('message-container');
-    container.innerHTML = `<div class="message-box ${type}">${text}</div>`;
 
-    if (type === 'error') {
-        setTimeout(() => container.innerHTML = '', 2000);
+function updateTimerDisplay() {
+    const timerElem = document.getElementById('timer');
+    if (timerElem) {
+        timerElem.textContent = gameState.timer.toFixed(1) + 's';
+
+        // Warning color after 35 seconds
+        if (gameState.timer > 35) {
+            timerElem.classList.add('warning');
+        } else {
+            timerElem.classList.remove('warning');
+        }
     }
 }
 
-function showWaitingScreen(eliminatedPlayerName = null) {
-    gameState.phase = 'waiting';
-    
+
+// ✅ FIX 6: Auto-eliminate on timeout
+function autoEliminateMe() {
+    console.log('💀 I was too slow - auto-eliminating myself');
+
+    // Store my timeout answer (999 = timeout)
+    gameState.playerAnswers[gameState.playerId] = {
+        time: 999,
+        name: gameState.playerName
+    };
+
+    // Broadcast timeout
+    sendRequest('*broadcast-message*', JSON.stringify({
+        type: 'player-answer',
+        playerId: gameState.playerId,
+        playerName: gameState.playerName,
+        time: 999,
+        questionIndex: gameState.currentQuestionIndex
+    }));
+
+    showFeedback('⏱️ Zeit abgelaufen! Du wirst eliminiert...', false);
+
+    document.getElementById('submit-btn').disabled = true;
+
+    // Check if all answered
+    checkIfAllAnswered();
+}
+
+
+// Show waiting screen
+function showWaitingScreen() {
     document.getElementById('question-screen').classList.add('hidden');
     document.getElementById('waiting-screen').classList.remove('hidden');
-    document.getElementById('eliminated-screen').classList.add('hidden');
-    document.getElementById('winner-screen').classList.add('hidden');
-    
-    const title = document.getElementById('waiting-title');
-    const message = document.getElementById('eliminated-message');
-    
-    if (eliminatedPlayerName) {
-        title.textContent = 'Spieler wurde eliminiert!';
-        message.textContent = `${eliminatedPlayerName} war zu langsam und wurde eliminiert.`;
+    document.getElementById('status-text').textContent = 'Warte auf andere Spieler...';
+    document.getElementById('waiting-title').textContent = 'Warteraum';
+
+    updatePlayersGrid();
+}
+
+
+// ✅ FIX 7: Show countdown with proper styling
+function showCountdown(seconds, callback) {
+    document.getElementById('question-screen').classList.add('hidden');
+    document.getElementById('waiting-screen').classList.remove('hidden');
+    document.getElementById('waiting-title').textContent = 'Nächste Frage...';
+
+    let count = seconds;
+    const countdownElement = document.getElementById('status-text');
+    countdownElement.classList.add('countdown');
+    countdownElement.textContent = count;
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownElement.textContent = count;
+        } else {
+            clearInterval(countdownInterval);
+            countdownElement.classList.remove('countdown');
+            callback();
+        }
+    }, 1000);
+}
+
+
+// ✅ FIX 8: Check if all answered - new function
+function checkIfAllAnswered() {
+    const activePlayers = gameState.players.filter(p => !p.eliminated);
+    const answeredCount = Object.keys(gameState.playerAnswers).length;
+
+    console.log('📊 Check: ' + answeredCount + '/' + activePlayers.length + ' players answered');
+    console.log('📝 Who answered:', Object.values(gameState.playerAnswers).map(a => a.name));
+
+    if (answeredCount === activePlayers.length) {
+        console.log('✅ ALL PLAYERS ANSWERED!');
+
+        setTimeout(() => {
+            findAndEliminateSlowest();
+        }, 1000);
     } else {
-        title.textContent = 'Warte auf nächste Frage...';
-        message.textContent = '';
+        console.log('⏳ Still waiting for ' + (activePlayers.length - answeredCount) + ' more player(s)');
+
+        setTimeout(() => {
+            showWaitingScreen();
+        }, 2000);
+    }
+}
+
+
+// ✅ FIX 9: Handle player answer from others
+function handlePlayerAnswer(data) {
+    // Don't process my own answer again
+    if (data.playerId === gameState.playerId) {
+        console.log('⚠️ Received my own answer, ignoring');
+        return;
     }
 
-    updatePlayersDisplay();
-    updateAFrameScene();
+    console.log('📨 Received player-answer message:', data);
+    console.log('   Player ID:', data.playerId);
+    console.log('   My ID:', gameState.playerId);
+    console.log('   Is from me?', data.playerId === gameState.playerId);
+
+    console.log('✅ Player answered:', data.playerName, 'Time:', data.time + 's');
+
+    // Store answer
+    gameState.playerAnswers[data.playerId] = {
+        time: data.time,
+        name: data.playerName
+    };
+
+    console.log('💾 Stored answer in playerAnswers');
+    console.log('📊 Current playerAnswers:', gameState.playerAnswers);
+
+    // Check if all answered
+    const activePlayers = gameState.players.filter(p => !p.eliminated);
+    console.log('👥 Active players:', activePlayers.map(p => p.name));
+
+    const answeredCount = Object.keys(gameState.playerAnswers).length;
+    console.log('📊 Progress:', answeredCount + '/' + activePlayers.length, 'players answered');
+    console.log('📝 Who answered:', Object.values(gameState.playerAnswers).map(a => a.name));
+
+    if (answeredCount === activePlayers.length) {
+        console.log('✅ ALL PLAYERS ANSWERED!');
+
+        setTimeout(() => {
+            findAndEliminateSlowest();
+        }, 1000);
+    } else {
+        console.log('⏳ Still waiting for ' + (activePlayers.length - answeredCount) + ' more player(s)');
+    }
 }
 
-function updatePlayersDisplay() {
-    const playersGrid = document.getElementById('players-grid');
-    if (!playersGrid) return;
-    
-    playersGrid.innerHTML = '';
 
-    gameState.players.forEach(player => {
-        const card = document.createElement('div');
-        card.className = `player-card ${player.active ? '' : 'eliminated'}`;
-        card.innerHTML = `
-            <div class="player-name">${player.name}</div>
-            <div style="margin-top: 10px; opacity: 0.7;">
-                ${player.active ? '✓ Aktiv' : '✗ Eliminiert'}
-            </div>
-        `;
-        playersGrid.appendChild(card);
+// Find and eliminate slowest player
+function findAndEliminateSlowest() {
+    const answers = Object.entries(gameState.playerAnswers);
+
+    if (answers.length === 0) {
+        console.log('⚠️ No answers to process');
+        return;
+    }
+
+    console.log('🔍 Processing elimination...');
+    console.log('📊 All answers:', answers);
+
+    // Find slowest
+    const slowest = answers.reduce((prev, curr) => {
+        return curr[1].time > prev[1].time ? curr : prev;
     });
 
-    const leftCount = gameState.players.filter(p => p.active).length;
-    document.getElementById('players-left').textContent = leftCount;
-}
+    const slowestId = parseInt(slowest[0]);
+    const slowestPlayer = gameState.players.find(p => p.id === slowestId);
 
-function updateAFrameScene() {
-    const container = document.getElementById('player-names');
-    if (!container) return;
-    
-    container.innerHTML = '';
+    console.log('💀 Slowest player:', slowestPlayer.name, 'Time:', slowest[1].time + 's');
 
-    const activePlayers = gameState.players.filter(p => p.active);
-    const radius = 3;
-    const angleStep = (2 * Math.PI) / Math.max(activePlayers.length, 1);
+    // Broadcast elimination
+    sendRequest('*broadcast-message*', JSON.stringify({
+        type: 'player-eliminated',
+        playerId: slowestId,
+        playerName: slowestPlayer.name,
+        time: slowest[1].time
+    }));
 
-    activePlayers.forEach((player, index) => {
-        const angle = index * angleStep;
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius - 5;
-
-        const textEntity = document.createElement('a-text');
-        textEntity.setAttribute('value', player.name);
-        textEntity.setAttribute('position', `${x} ${1.6} ${z}`);
-        textEntity.setAttribute('align', 'center');
-        textEntity.setAttribute('color', player.id === gameState.myPlayerId ? '#ffd700' : '#ffffff');
-        textEntity.setAttribute('width', '6');
-        
-        container.appendChild(textEntity);
+    // Handle locally
+    handlePlayerEliminated({
+        playerId: slowestId,
+        playerName: slowestPlayer.name
     });
 }
 
+
+// ✅ FIX 10: Handle player elimination - improved
+function handlePlayerEliminated(data) {
+    console.log('💀 Player eliminated:', data.playerName);
+
+    // Mark player as eliminated
+    const player = gameState.players.find(p => p.id === data.playerId);
+    if (player) {
+        player.eliminated = true;
+    }
+
+    // Check if I was eliminated
+    if (data.playerId === gameState.playerId) {
+        gameState.eliminated = true;
+        document.getElementById('status-text').textContent = 
+            `Du wurdest eliminiert!`;
+        setTimeout(() => {
+            showEliminatedScreen();
+        }, 3000);
+        return;
+    }
+
+    // Update grid
+    updatePlayersGrid();
+
+    // Show elimination message
+    document.getElementById('waiting-screen').classList.remove('hidden');
+    document.getElementById('question-screen').classList.add('hidden');
+    document.getElementById('waiting-title').textContent = 'Eliminierung';
+    document.getElementById('status-text').textContent = 
+        `${data.playerName} wurde eliminiert!`;
+
+    // Check remaining players
+    const remaining = gameState.players.filter(p => !p.eliminated);
+
+    if (remaining.length === 1) {
+        // Only one left - winner!
+        setTimeout(() => {
+            showWinner();
+        }, 3000);
+    } else {
+        // Reset answers and show countdown before next question
+        setTimeout(() => {
+            gameState.playerAnswers = {};
+            selectedAnswerIndex = null;
+
+            showCountdown(3, () => {
+                startQuestion(gameState.currentQuestionIndex + 1);
+            });
+        }, 3000);
+    }
+}
+
+
+// Show eliminated screen
 function showEliminatedScreen() {
+    stopTimer();
+
     document.getElementById('question-screen').classList.add('hidden');
     document.getElementById('waiting-screen').classList.add('hidden');
-    document.getElementById('winner-screen').classList.add('hidden');
     document.getElementById('eliminated-screen').classList.remove('hidden');
 }
 
-function showWinnerScreen() {
-    document.getElementById('question-screen').classList.add('hidden');
-    document.getElementById('waiting-screen').classList.add('hidden');
-    document.getElementById('eliminated-screen').classList.add('hidden');
-    document.getElementById('winner-screen').classList.remove('hidden');
+
+// Show winner
+function showWinner() {
+    stopTimer();
+    gameState.gameOver = true;
+
+    const remaining = gameState.players.filter(p => !p.eliminated);
+
+    if (remaining.length === 1 && remaining[0].id === gameState.playerId) {
+        document.getElementById('question-screen').classList.add('hidden');
+        document.getElementById('waiting-screen').classList.add('hidden');
+        document.getElementById('winner-screen').classList.remove('hidden');
+    }
 }
 
+
+// Event listeners
+document.getElementById('submit-btn')?.addEventListener('click', submitAnswer);
+
+
+// Initialize on load
 window.addEventListener('DOMContentLoaded', initGame);

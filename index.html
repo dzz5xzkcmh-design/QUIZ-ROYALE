@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WWM Battle Royale - Lobby</title>
+    <title>WWM Battle Royale</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
         
@@ -15,12 +15,12 @@
 
         body {
             font-family: 'Orbitron', sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #0f3460 100%);
+            background: #0a0e27;
+            color: white;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
             position: relative;
             overflow: hidden;
         }
@@ -28,15 +28,16 @@
         /* Animated Grid Background */
         body::before {
             content: '';
-            position: absolute;
+            position: fixed;
             width: 200%;
             height: 200%;
             background-image: 
-                linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: gridMove 20s linear infinite;
             pointer-events: none;
+            z-index: 0;
         }
 
         @keyframes gridMove {
@@ -44,196 +45,143 @@
             100% { transform: translate(50px, 50px); }
         }
 
-        /* Glowing orbs */
-        body::after {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, transparent 70%);
-            border-radius: 50%;
-            animation: float 15s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(50%, 50%) scale(1.5); }
-        }
-
         .container {
-            background: rgba(10, 14, 39, 0.85);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 550px;
-            width: 100%;
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            box-shadow: 
-                0 0 40px rgba(0, 255, 255, 0.3),
-                inset 0 0 40px rgba(0, 255, 255, 0.05);
+            max-width: 500px;
+            width: 90%;
             position: relative;
             z-index: 1;
         }
 
-        /* Corner decorations */
-        .container::before,
-        .container::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #00ffff;
+        .logo {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInDown 1s ease-out;
         }
 
-        .container::before {
-            top: -2px;
-            left: -2px;
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #ff00ff;
+            font-weight: 600;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(0, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+            position: relative;
+            animation: fadeInUp 1s ease-out 0.3s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Corner decorations */
+        .card::before,
+        .card::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ff00ff;
+        }
+
+        .card::before {
+            top: -3px;
+            left: -3px;
             border-right: none;
             border-bottom: none;
         }
 
-        .container::after {
-            bottom: -2px;
-            right: -2px;
+        .card::after {
+            bottom: -3px;
+            right: -3px;
             border-left: none;
             border-top: none;
         }
 
-        h1 {
-            color: #00ffff;
-            text-align: center;
-            font-size: 2.8em;
-            margin-bottom: 10px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 
-                0 0 10px #00ffff,
-                0 0 20px #00ffff,
-                0 0 30px #00ffff;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff; }
-            to { text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff; }
-        }
-
-        .subtitle {
-            color: #ff00ff;
-            text-align: center;
+        .form-group {
             margin-bottom: 30px;
-            font-size: 1em;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 700;
-        }
-
-        .room-code {
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            border: 1px solid rgba(0, 255, 255, 0.5);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .room-code::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                45deg,
-                transparent,
-                rgba(0, 255, 255, 0.1),
-                transparent
-            );
-            animation: scanline 3s linear infinite;
-        }
-
-        @keyframes scanline {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .room-code label {
-            color: rgba(0, 255, 255, 0.7);
-            font-size: 0.8em;
-            display: block;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-family: 'Share Tech Mono', monospace;
-        }
-
-        .room-code-display {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 2.2em;
-            font-weight: bold;
-            color: #00ffff;
-            letter-spacing: 8px;
-            text-shadow: 0 0 10px #00ffff;
-            position: relative;
-            z-index: 1;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
         }
 
         label {
-            color: #00ffff;
             display: block;
-            margin-bottom: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
+            margin-bottom: 10px;
             font-size: 0.9em;
-            letter-spacing: 1px;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         input {
             width: 100%;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            background: rgba(0, 0, 0, 0.5);
-            color: #00ffff;
-            font-size: 1em;
+            padding: 15px 20px;
+            font-size: 1.1em;
             font-family: 'Share Tech Mono', monospace;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 255, 0.4);
+            border-radius: 10px;
+            color: #00ffff;
             transition: all 0.3s;
-            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            background: rgba(0, 255, 255, 0.15);
         }
 
         input::placeholder {
             color: rgba(0, 255, 255, 0.4);
         }
 
-        input:focus {
-            outline: none;
-            border-color: #00ffff;
-            background: rgba(0, 0, 0, 0.7);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        }
-
         button {
             width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
+            padding: 18px;
+            font-size: 1.3em;
             font-weight: 900;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
             font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);
+            border: 2px solid #ff00ff;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
             position: relative;
             overflow: hidden;
         }
@@ -252,469 +200,133 @@
         }
 
         button:hover::before {
-            width: 300px;
-            height: 300px;
+            width: 500px;
+            height: 500px;
         }
 
-        button span {
-            position: relative;
-            z-index: 1;
+        button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 0, 255, 0.6);
         }
 
-        .btn-join {
-            background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
-            color: #0a0e27;
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
-        }
-
-        .btn-join:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 30px rgba(0, 255, 255, 0.6);
-        }
-
-        .btn-start {
-            background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);
-            color: white;
-            border: 2px solid #ff00ff;
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
-        }
-
-        .btn-start:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 30px rgba(255, 0, 255, 0.6);
-        }
-
-        .btn-start:disabled {
-            opacity: 0.4;
+        button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
 
-        .players-section {
+        .info-box {
             margin-top: 30px;
-        }
-
-        .players-header {
-            color: #00ffff;
-            font-size: 1.1em;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .player-count {
-            background: rgba(255, 0, 255, 0.3);
-            padding: 5px 12px;
-            border-radius: 5px;
-            font-size: 0.85em;
-            border: 1px solid #ff00ff;
-            font-family: 'Share Tech Mono', monospace;
-        }
-
-        .players-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        /* Custom scrollbar */
-        .players-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .players-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 4px;
-        }
-
-        .players-list::-webkit-scrollbar-thumb {
-            background: rgba(0, 255, 255, 0.5);
-            border-radius: 4px;
-        }
-
-        .player-item {
+            padding: 20px;
             background: rgba(0, 255, 255, 0.1);
             border: 1px solid rgba(0, 255, 255, 0.3);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            animation: slideIn 0.4s ease-out;
-            transition: all 0.3s;
-        }
-
-        .player-item:hover {
-            background: rgba(0, 255, 255, 0.2);
-            border-color: #00ffff;
-            transform: translateX(5px);
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .player-number {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            color: #0a0e27;
-            font-size: 1.2em;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-        }
-
-        .player-name {
-            color: #00ffff;
-            font-weight: 700;
-            flex: 1;
-            font-family: 'Share Tech Mono', monospace;
-            letter-spacing: 1px;
-        }
-
-        .status-message {
-            color: rgba(255, 0, 255, 0.8);
+            border-radius: 10px;
             text-align: center;
-            margin-top: 20px;
-            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .info-box p {
             font-size: 0.9em;
-            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
         }
 
-        .hidden {
-            display: none !important;
+        .info-box strong {
+            color: #00ffff;
+            font-size: 1.1em;
         }
 
-        /* Tech decoration lines */
-        .container .tech-line {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00ffff, transparent);
-            width: 100%;
-            left: 0;
-        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8em;
+            }
 
-        .container .tech-line.top {
-            top: 60px;
-        }
+            .subtitle {
+                font-size: 1em;
+            }
 
-        .container .tech-line.bottom {
-            bottom: 60px;
+            .card {
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>💰 Wer wird Millionär?</h1>
-        <p class="subtitle">Battle Royale Edition</p>
-
-        <!-- Name Input Screen -->
-        <div id="name-screen">
-            <div class="input-group">
-                <label for="player-name">Dein Name:</label>
-                <input 
-                    type="text" 
-                    id="player-name" 
-                    placeholder="Gib deinen Namen ein..." 
-                    maxlength="20"
-                    autofocus
-                />
-            </div>
-            <button class="btn-join" onclick="joinGame()"><span>↗ Spiel beitreten</span></button>
+        <div class="logo">
+            <h1>🏆 WWM Battle Royale</h1>
+            <div class="subtitle">Quiz-Kampf bis nur einer übrig bleibt!</div>
         </div>
 
-        <!-- Lobby Screen -->
-        <div id="lobby-screen" class="hidden">
-            <!-- Room Code -->
-            <div class="room-code">
-                <label>Raum-Code:</label>
-                <div class="room-code-display" id="room-code">XXXXXX</div>
-            </div>
-
-            <!-- Players List -->
-            <div class="players-section">
-                <div class="players-header">
-                    <span>👥 Spieler</span>
-                    <span class="player-count" id="player-count">0/10</span>
+        <div class="card">
+            <form id="join-form">
+                <div class="form-group">
+                    <label>Dein Spielername</label>
+                    <input 
+                        type="text" 
+                        id="player-name" 
+                        placeholder="Gib deinen Namen ein..."
+                        maxlength="20"
+                        required
+                        autocomplete="off"
+                    >
                 </div>
-                <div class="players-list" id="players-list"></div>
+
+                <button type="submit">Spiel beitreten</button>
+            </form>
+
+            <div class="info-box">
+                <p>
+                    🎮 Alle die diesen Link öffnen, spielen im <strong>gleichen Raum</strong>!<br>
+                    📱 Perfekt für QR-Codes und einfaches Teilen!
+                </p>
             </div>
-
-            <!-- Start Button -->
-            <button class="btn-start" id="start-btn" onclick="startGame()" disabled>
-                <span>▶ Spiel starten</span>
-            </button>
-
-            <p class="status-message" id="status-message">
-                Warte auf mindestens 2 Spieler...
-            </p>
         </div>
     </div>
 
     <script>
-        const webRoomsWebSocketServerAddr = 'https://nosch.uber.space/web-rooms/';
-        let socket = null;
-        let clientId = null;
-        let roomCode = getRoomCodeFromURL() || generateRoomCode();
-        let players = [];
-        let isStarter = false;
-        let gameStarted = false;
+        // FIXED ROOM CODE - Alle Spieler landen im gleichen Raum!
+        const FIXED_ROOM_CODE = 'BATTLE2026';
+        
+        const form = document.getElementById('join-form');
+        const nameInput = document.getElementById('player-name');
 
-        function getRoomCodeFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('room');
-        }
-
-        function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        function updateURLWithRoomCode(code) {
-            const url = new URL(window.location);
-            url.searchParams.set('room', code);
-            window.history.replaceState({}, '', url);
-        }
-
-        function initWebSocket() {
-            socket = new WebSocket(webRoomsWebSocketServerAddr);
-
-            socket.addEventListener('open', (event) => {
-                console.log('WebSocket connected');
-                sendRequest('*enter-room*', `wwm-${roomCode}`);
-                sendRequest('*subscribe-client-count*');
-                setInterval(() => socket.send(''), 30000);
-            });
-
-            socket.addEventListener('message', (event) => {
-                if (event.data.length > 0) {
-                    try {
-                        const incoming = JSON.parse(event.data);
-                        handleMessage(incoming);
-                    } catch (e) {
-                        console.warn('Failed to parse message:', event.data, e);
-                    }
-                }
-            });
-
-            socket.addEventListener('close', (event) => {
-                console.log('WebSocket disconnected');
-                
-                // Broadcast that I'm leaving
-                const myPlayer = players.find(p => p.name);
-                if (myPlayer) {
-                    sendRequest('*broadcast-message*', JSON.stringify({
-                        type: 'player-left',
-                        id: myPlayer.id,
-                        name: myPlayer.name
-                    }));
-                }
-            });
-        }
-
-        function handleMessage(message) {
-            if (!Array.isArray(message)) return;
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
             
-            const [selector, ...args] = message;
-
-            if (selector === '*client-id*') {
-                clientId = args[0];
-                console.log('Client ID:', clientId);
-                return;
-            }
-
-            if (selector === '*client-count*') {
-                const count = args[0];
-                console.log('Client count:', count);
-                return;
-            }
-
-            if (typeof selector === 'string' && selector.startsWith('{')) {
-                try {
-                    const data = JSON.parse(selector);
-                    console.log('Received:', data.type);
-                    
-                    if (data.type === 'player-joined' && data.id) {
-                        console.log('Player joined:', data);
-                        addPlayer(data);
-                        
-                        const myPlayer = players.find(p => p.name);
-                        if (myPlayer && myPlayer.id !== data.id) {
-                            setTimeout(() => {
-                                console.log('Sending my info back');
-                                sendRequest('*broadcast-message*', JSON.stringify({
-                                    type: 'player-info',
-                                    id: myPlayer.id,
-                                    name: myPlayer.name
-                                }));
-                            }, 200);
-                        }
-                    } else if (data.type === 'player-info' && data.id) {
-                        console.log('Received player info:', data);
-                        addPlayer(data);
-                    } else if (data.type === 'player-left' && data.id) {
-                        console.log('Player left:', data.name);
-                        removePlayer(data.id);
-                    } else if (data.type === 'start-game') {
-                        if (gameStarted) return;
-                        gameStarted = true;
-                        
-                        console.log('🎮 GAME STARTING!');
-                        
-                        const myPlayer = players.find(p => p.name);
-                        
-                        // Encode player list
-                        const playersJSON = encodeURIComponent(JSON.stringify(players));
-                        
-                        setTimeout(() => {
-                            window.location.href = `game.html?room=${roomCode}&player=${encodeURIComponent(myPlayer.name)}&playerId=${myPlayer.id}&players=${playersJSON}`;
-                        }, 500);
-                    }
-                } catch (e) {
-                    console.warn('Parse error:', e);
-                }
-            }
-        }
-
-        function sendRequest(...message) {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(message));
-            }
-        }
-
-        function joinGame() {
-            const nameInput = document.getElementById('player-name');
             const playerName = nameInput.value.trim();
-
+            
             if (!playerName) {
                 alert('Bitte gib einen Namen ein!');
                 return;
             }
 
-            if (!getRoomCodeFromURL()) {
-                isStarter = true;
-                updateURLWithRoomCode(roomCode);
+            // Generate unique player ID
+            const playerId = Date.now();
+            
+            // Create player object for URL
+            const players = [{
+                id: playerId,
+                name: playerName,
+                eliminated: false
+            }];
+            
+            // Redirect to game with fixed room code
+            const gameUrl = `game.html?room=${FIXED_ROOM_CODE}&player=${encodeURIComponent(playerName)}&playerId=${playerId}&players=${encodeURIComponent(JSON.stringify(players))}`;
+            
+            window.location.href = gameUrl;
+        });
+
+        // Auto-focus on name input
+        window.addEventListener('load', () => {
+            nameInput.focus();
+        });
+
+        // Allow Enter key to submit
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
             }
-
-            initWebSocket();
-
-            document.getElementById('name-screen').classList.add('hidden');
-            document.getElementById('lobby-screen').classList.remove('hidden');
-            document.getElementById('room-code').textContent = roomCode;
-
-            const player = {
-                id: Date.now(),
-                name: playerName
-            };
-            
-            players.push(player);
-            updatePlayersDisplay();
-
-            const broadcastData = JSON.stringify({
-                type: 'player-joined',
-                id: player.id,
-                name: player.name
-            });
-            
-            sendRequest('*broadcast-message*', broadcastData);
-            setTimeout(() => sendRequest('*broadcast-message*', broadcastData), 100);
-            setTimeout(() => sendRequest('*broadcast-message*', broadcastData), 300);
-            
-            console.log('Broadcasting player join:', broadcastData);
-        }
-
-        function addPlayer(playerData) {
-            console.log('Adding player:', playerData);
-            
-            if (!players.find(p => p.id === playerData.id || p.name === playerData.name)) {
-                players.push(playerData);
-                console.log('Player added! Total:', players.length);
-                updatePlayersDisplay();
-            }
-        }
-
-        function removePlayer(playerId) {
-            console.log('Removing player ID:', playerId);
-            players = players.filter(p => p.id !== playerId);
-            console.log('Player removed! Total:', players.length);
-            updatePlayersDisplay();
-        }
-
-        function updatePlayersDisplay() {
-            const playersList = document.getElementById('players-list');
-            const playerCount = document.getElementById('player-count');
-            const startBtn = document.getElementById('start-btn');
-            const statusMsg = document.getElementById('status-message');
-
-            playersList.innerHTML = '';
-            players.forEach((player, index) => {
-                const playerItem = document.createElement('div');
-                playerItem.className = 'player-item';
-                playerItem.innerHTML = `
-                    <div class="player-number">${index + 1}</div>
-                    <div class="player-name">${player.name}</div>
-                `;
-                playersList.appendChild(playerItem);
-            });
-
-            playerCount.textContent = `${players.length}/10`;
-
-            const canStart = players.length >= 2 && players.length <= 10 && !gameStarted;
-            startBtn.disabled = !canStart;
-
-            if (gameStarted) {
-                statusMsg.textContent = 'Spiel startet...';
-            } else if (players.length === 1) {
-                statusMsg.textContent = 'Warte auf mehr Spieler... (Mindestens 2 benötigt)';
-            } else if (players.length > 10) {
-                statusMsg.textContent = 'Maximale Spieleranzahl erreicht!';
-            } else if (players.length >= 2) {
-                statusMsg.textContent = `Bereit! (${players.length} Spieler) - Jeder kann starten! 🎮`;
-            } else {
-                statusMsg.textContent = 'Verbinde...';
-            }
-        }
-
-        function startGame() {
-            if (gameStarted || players.length < 2 || players.length > 10) return;
-            
-            gameStarted = true;
-            console.log('🎮 Starting game with players:', players);
-            
-            const startMessage = JSON.stringify({ 
-                type: 'start-game',
-                players: players,
-                totalPlayers: players.length
-            });
-            
-            sendRequest('*broadcast-message*', startMessage);
-            setTimeout(() => sendRequest('*broadcast-message*', startMessage), 100);
-            setTimeout(() => sendRequest('*broadcast-message*', startMessage), 300);
-            
-            const myPlayer = players.find(p => p.name);
-            
-            // Encode player list as JSON in URL
-            const playersJSON = encodeURIComponent(JSON.stringify(players));
-            
-            setTimeout(() => {
-                window.location.href = `game.html?room=${roomCode}&player=${encodeURIComponent(myPlayer.name)}&playerId=${myPlayer.id}&players=${playersJSON}`;
-            }, 500);
-        }
+        });
     </script>
 </body>
 </html>

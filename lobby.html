@@ -431,30 +431,24 @@
             isHost: false,
             maxPlayers: 2,
             players: [],
-            roomCode: FIXED_ROOM_CODE
+            roomCode: FIXED_ROOM_CODE,
+            hostId: null
         };
 
         // Initialize
         window.addEventListener('DOMContentLoaded', init);
 
         function init() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const maxPlayers = urlParams.get('maxPlayers');
-            
-            if (!maxPlayers) {
-                // First player = Host
-                state.isHost = true;
-                document.getElementById('host-settings').style.display = 'block';
-                setupPlayerCountSelector();
-            } else {
-                // Joining existing lobby
-                state.maxPlayers = parseInt(maxPlayers);
-                state.isHost = false;
-            }
+            // EVERYONE starts at setup screen
+            // Host is determined by who joins WebSocket room first
             
             document.getElementById('join-lobby-btn').addEventListener('click', joinLobby);
             document.getElementById('start-game-btn').addEventListener('click', startGame);
             document.getElementById('player-name').focus();
+            
+            // Setup player count selector (always show for now)
+            document.getElementById('host-settings').style.display = 'block';
+            setupPlayerCountSelector();
         }
 
         function setupPlayerCountSelector() {
@@ -489,13 +483,7 @@
             document.getElementById('lobby-screen').classList.remove('hidden');
             document.getElementById('max-players').textContent = state.maxPlayers;
             
-            // Update role badge
-            if (state.isHost) {
-                document.getElementById('role-badge').textContent = '👑 Host';
-                document.getElementById('role-badge').classList.add('host');
-            }
-            
-            // Connect to WebSocket
+            // Connect to WebSocket - will determine host on connection
             connectWebSocket();
         }
 
@@ -510,7 +498,7 @@
                 // Join room
                 sendRequest('join', state.roomCode);
                 
-                // Announce myself
+                // Announce myself and request host status
                 broadcastPlayerJoined();
                 
                 // Start keep-alive
@@ -545,16 +533,37 @@
                 type: 'player-joined',
                 id: state.playerId,
                 name: state.playerName,
-                isHost: state.isHost,
-                maxPlayers: state.maxPlayers
+                maxPlayers: state.maxPlayers,
+                timestamp: Date.now()
             }));
             
             // Add myself to players list
             addPlayer({
                 id: state.playerId,
-                name: state.playerName,
-                isHost: state.isHost
+                name: state.playerName
             });
+            
+            // If I'm the first one, I'm the host
+            if (state.players.length === 1) {
+                becomeHost();
+            }
+        }
+
+        function becomeHost() {
+            console.log('👑 I am now the HOST!');
+            state.isHost = true;
+            state.hostId = state.playerId;
+            
+            document.getElementById('role-badge').textContent = '👑 Host';
+            document.getElementById('role-badge').classList.add('host');
+            
+            // Broadcast that I'm the host
+            sendRequest('*broadcast-message*', JSON.stringify({
+                type: 'host-announcement',
+                hostId: state.playerId,
+                hostName: state.playerName,
+                maxPlayers: state.maxPlayers
+            }));
         }
 
         function handleMessage(data) {
@@ -584,6 +593,9 @@
                 case 'player-joined':
                     handlePlayerJoined(message);
                     break;
+                case 'host-announcement':
+                    handleHostAnnouncement(message);
+                    break;
                 case 'host-start-game':
                     redirectToGame();
                     break;
@@ -596,13 +608,41 @@
             
             console.log('➕ Player joined:', data.name);
             
-            // Update maxPlayers if host joined
-            if (data.isHost && data.maxPlayers) {
+            // If they provided maxPlayers and we don't have a host yet, use their setting
+            if (data.maxPlayers && !state.hostId) {
                 state.maxPlayers = data.maxPlayers;
                 document.getElementById('max-players').textContent = state.maxPlayers;
             }
             
-            addPlayer(data);
+            addPlayer({
+                id: data.id,
+                name: data.name
+            });
+            
+            // If I'm host, announce it again to new player
+            if (state.isHost) {
+                setTimeout(() => {
+                    sendRequest('*broadcast-message*', JSON.stringify({
+                        type: 'host-announcement',
+                        hostId: state.playerId,
+                        hostName: state.playerName,
+                        maxPlayers: state.maxPlayers
+                    }));
+                }, 500);
+            }
+        }
+
+        function handleHostAnnouncement(data) {
+            // Someone else is the host
+            if (data.hostId !== state.playerId) {
+                console.log('👤 Host is:', data.hostName);
+                state.hostId = data.hostId;
+                state.maxPlayers = data.maxPlayers;
+                document.getElementById('max-players').textContent = state.maxPlayers;
+                
+                // Mark host in player list
+                updatePlayersDisplay();
+            }
         }
 
         function addPlayer(player) {
@@ -625,7 +665,7 @@
                     card.classList.add('me');
                 }
                 
-                if (player.isHost) {
+                if (player.id === state.hostId) {
                     card.classList.add('host-badge');
                 }
                 
@@ -662,7 +702,8 @@
             // Broadcast game start
             sendRequest('*broadcast-message*', JSON.stringify({
                 type: 'host-start-game',
-                players: state.players
+                players: state.players,
+                maxPlayers: state.maxPlayers
             }));
             
             // Redirect myself

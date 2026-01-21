@@ -251,7 +251,307 @@ const QUESTIONS_POOL = [
         question: 'Welche Farbe hat das "Black Box" Flugschreiber?',
         answers: ['Schwarz', 'Orange', 'Rot', 'Gelb'],
         correct: 1
-    }
+    },
+    {
+        question: "Welche Farbe hat ein Stopp-Schild?",
+        answers: ["Rot", "Gelb", "Blau", "Grün"],
+        correct: 0,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Beine hat eine Spinne?",
+        answers: ["6", "8", "10", "12"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "In welchem Land steht der Eiffelturm?",
+        answers: ["Italien", "Spanien", "Frankreich", "Deutschland"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier ist das größte Landsäugetier?",
+        answers: ["Giraffe", "Nashorn", "Elefant", "Nilpferd"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Tage hat der Februar in einem Schaltjahr?",
+        answers: ["28", "29", "30", "31"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe entsteht wenn man Blau und Gelb mischt?",
+        answers: ["Grün", "Orange", "Lila", "Braun"],
+        correct: 0,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt von Italien?",
+        answers: ["Mailand", "Venedig", "Rom", "Florenz"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welcher Planet ist der Sonne am nächsten?",
+        answers: ["Venus", "Merkur", "Erde", "Mars"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Minuten hat eine Stunde?",
+        answers: ["50", "60", "70", "100"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier bellt?",
+        answers: ["Katze", "Kuh", "Hund", "Pferd"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Aus welchem Land kommt Pizza ursprünglich?",
+        answers: ["Frankreich", "Griechenland", "Spanien", "Italien"],
+        correct: 3,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Zähne hat ein erwachsener Mensch normalerweise?",
+        answers: ["28", "32", "36", "40"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe hat eine Banane wenn sie reif ist?",
+        answers: ["Grün", "Gelb", "Rot", "Orange"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie nennt man ein junges Pferd?",
+        answers: ["Kalb", "Lamm", "Fohlen", "Welpe"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "In welchem Ozean liegt Hawaii?",
+        answers: ["Atlantik", "Indischer Ozean", "Pazifik", "Arktischer Ozean"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Seiten hat ein Würfel?",
+        answers: ["4", "6", "8", "12"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier gibt Milch?",
+        answers: ["Schwein", "Huhn", "Kuh", "Schaf"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt von Spanien?",
+        answers: ["Barcelona", "Madrid", "Valencia", "Sevilla"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Form hat ein Fußball?",
+        answers: ["Würfel", "Dreieck", "Kugel", "Pyramide"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Finger hat eine menschliche Hand?",
+        answers: ["4", "5", "6", "10"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welcher Monat hat 31 Tage?",
+        answers: ["Februar", "April", "Januar", "Juni"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier legt Eier?",
+        answers: ["Hund", "Huhn", "Kuh", "Pferd"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt der größte Kontinent?",
+        answers: ["Afrika", "Europa", "Asien", "Amerika"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe hat die Sonne?",
+        answers: ["Rot", "Gelb", "Blau", "Grün"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Räder hat ein Fahrrad?",
+        answers: ["1", "2", "3", "4"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier kann fliegen?",
+        answers: ["Fisch", "Vogel", "Hund", "Katze"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt von England?",
+        answers: ["Manchester", "Liverpool", "London", "Birmingham"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Jahreszeit kommt nach dem Frühling?",
+        answers: ["Winter", "Herbst", "Sommer", "Frühherbst"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Buchstaben hat das deutsche Alphabet?",
+        answers: ["24", "26", "28", "30"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier hat einen Rüssel?",
+        answers: ["Giraffe", "Elefant", "Zebra", "Löwe"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Aus welcher Frucht wird Wein gemacht?",
+        answers: ["Äpfel", "Trauben", "Orangen", "Bananen"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Kontinente gibt es?",
+        answers: ["5", "6", "7", "8"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe entsteht wenn man Rot und Blau mischt?",
+        answers: ["Orange", "Grün", "Lila", "Braun"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt von Deutschland?",
+        answers: ["München", "Hamburg", "Berlin", "Köln"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier miaut?",
+        answers: ["Hund", "Katze", "Maus", "Vogel"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Ecken hat ein Dreieck?",
+        answers: ["2", "3", "4", "5"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welcher Wochentag kommt nach Montag?",
+        answers: ["Mittwoch", "Dienstag", "Donnerstag", "Freitag"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier ist schwarz-weiß gestreift?",
+        answers: ["Tiger", "Leopard", "Zebra", "Giraffe"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Augen hat ein Mensch?",
+        answers: ["1", "2", "3", "4"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe hat ein klassischer Basketball?",
+        answers: ["Weiß", "Orange", "Rot", "Gelb"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt von Österreich?",
+        answers: ["Salzburg", "Wien", "Graz", "Innsbruck"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier kann im Wasser und an Land leben?",
+        answers: ["Hund", "Katze", "Frosch", "Vogel"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Monate hat ein Jahr?",
+        answers: ["10", "12", "14", "16"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Frucht ist rot und wächst auf Bäumen?",
+        answers: ["Banane", "Apfel", "Orange", "Traube"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie nennt man den Partner der Königin?",
+        answers: ["Prinz", "König", "Herzog", "Baron"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier hat einen langen Hals?",
+        answers: ["Elefant", "Giraffe", "Zebra", "Löwe"],
+        correct: 1,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie viele Spieler hat eine Fußballmannschaft auf dem Feld?",
+        answers: ["9", "10", "11", "12"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welche Farbe hat Schnee?",
+        answers: ["Weiß", "Blau", "Grau", "Gelb"],
+        correct: 0,
+        type: "multiple-choice"
+    },
+    {
+        question: "Wie heißt die Hauptstadt der Schweiz?",
+        answers: ["Zürich", "Genf", "Bern", "Basel"],
+        correct: 2,
+        type: "multiple-choice"
+    },
+    {
+        question: "Welches Tier gibt Wolle?",
+        answers: ["Kuh", "Schwein", "Schaf", "Ziege"],
+        correct: 2,
+        type: "multiple-choice"
+    },
 ];
 
 // Shuffle questions on loads

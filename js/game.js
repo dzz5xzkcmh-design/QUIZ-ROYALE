@@ -213,7 +213,7 @@ function handlePlayerReady(playerId, name) {
     addPlayer(playerId, name);
     updatePlayersGrid();
 
-    if (gameState.playerId === 'player-0' && gameState.players.length >= 4 && !gameState.gameStarted) {
+    if (gameState.playerId === 'player-0' && gameState.players.length >= 6 && !gameState.gameStarted) {
         // Broadcast game start
         sendRequest('*broadcast-message*', ['start-game']);
         handleGameStart();
